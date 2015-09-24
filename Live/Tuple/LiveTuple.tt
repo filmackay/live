@@ -1,0 +1,62 @@
+﻿<#@ template language="C#" debug="true" #>
+<#@ output extension=".cs" #>
+<#@ Assembly Name="System.Core.dll" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Linq" #>
+using System;
+
+namespace Vertigo.Live
+{
+    public static partial class LiveTuple
+    {
+<#
+    for (var typeCount = 1; typeCount <= 7; typeCount++)
+    {
+        string types = ExpandTypes(typeCount, "{1}", ",");
+        string liveTypes = ExpandTypes(typeCount, "ILiveValue<{1}>", ", ");
+#>
+		public static ILiveValue<Tuple<<#=types#>>> Create<<#=types#>>(<#=this.ExpandTypes(typeCount, "ILiveValue<{1}> source{2}", ", ")#>)
+        {
+			return
+				new Func<<#=types#>, Tuple<<#=types#>>>(Tuple.Create)
+					.LiveInvoke(<#=this.ExpandTypes(typeCount, "source{2}", ", ")#>);
+		}
+
+		public static ILiveValue<Tuple<<#=types#>>> Unwrap<<#=types#>>(this Tuple<<#=liveTypes#>> source)
+        {
+			return Create(<#=this.ExpandTypes(typeCount, "source.{0}", ", ")#>);
+		}
+
+<#  }   #>
+	}
+}
+
+<#+
+	private string ExpandTypes(int typeCount, string format, string pre, string post = "")
+	{
+		return string.Join(pre,
+			Enumerable.Range(1, typeCount)
+					.Select(i => string.Format(format,
+												ItemName(i),
+												TypeName(i),
+												i,
+												i - 1)).ToArray()) +
+			string.Join(post, Enumerable.Range(1, typeCount).Select(i => "").ToArray());
+	}
+	
+    public void ExpandTypes(int typeCount, Action<string,string> action)
+    {
+		for (var i = 1; i <= typeCount; i++)
+			action(i == 8 ? "Rest" : string.Format("Item{0}", i), i == 8 ? "TRest" : string.Format("T{0}", i));
+    }
+
+	public string ItemName(int i)
+	{
+		return i == 8 ? "Rest" : string.Format("Item{0}", i);
+	}
+
+	public string TypeName(int i)
+	{
+		return i == 8 ? "TRest" : string.Format("T{0}", i);
+	}
+#>

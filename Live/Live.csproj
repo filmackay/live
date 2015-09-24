@@ -1,0 +1,384 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{91477EB6-A2B6-4A79-A4DB-F4F7AEB8B0D9}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Vertigo.Live</RootNamespace>
+    <AssemblyName>Live</AssemblyName>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccProvider>
+    </SccProvider>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <UpgradeBackupLocation />
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\CfdBot\packages\Newtonsoft.Json.5.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.Interactive, Version=1.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\CfdBot\packages\Ix-Main.1.2.2\lib\net45\System.Interactive.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Reactive.Core, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\Rx-Core.2.2.5\lib\net45\System.Reactive.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Reactive.Interfaces, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\Rx-Interfaces.2.2.5\lib\net45\System.Reactive.Interfaces.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Reactive.Linq, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\Rx-Linq.2.2.5\lib\net45\System.Reactive.Linq.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices, Version=2.2.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\Rx-PlatformServices.2.2.5\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="WeakReference.cs" />
+    <None Include="Binding\Binding.cs" />
+    <Compile Include="Binding\LiveDependencyObject.cs" />
+    <Compile Include="Callback.cs" />
+    <Compile Include="Concurrency.cs" />
+    <Compile Include="HiResTimer.cs" />
+    <Compile Include="List\Projection\LiveListReturn.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionToCollection.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionUntyped.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionToArray.cs" />
+    <Compile Include="Collection\LiveCollectionMerge.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionPermutations.cs" />
+    <Compile Include="Collection\LiveCollectionObservable.cs" />
+    <Compile Include="Dictionary\DictionaryState.cs" />
+    <Compile Include="Dictionary\LiveDictionaryObservable.cs" />
+    <Compile Include="Func\LiveFunc2.cs" />
+    <Compile Include="LinqExtensions.cs" />
+    <Compile Include="List\LiveListObservable.cs" />
+    <Compile Include="Observable\Extensions.cs" />
+    <Compile Include="Observable\ObservableEx.cs" />
+    <Compile Include="Lock\ReaderWriterSpinLock.cs" />
+    <Compile Include="Timeline\LiveScheduler.cs" />
+    <Compile Include="Timeline\Throttle.cs" />
+    <Compile Include="Value\LiveValueCache.cs" />
+    <Compile Include="Value\LiveValueDisconnectOn.cs" />
+    <Compile Include="Value\LiveRange.cs" />
+    <Compile Include="List\Projection\LiveListTakeLast.cs" />
+    <Compile Include="LiveObserver.cs" />
+    <Compile Include="Dictionary\LiveValueDictionaryUnwrap.cs" />
+    <Compile Include="List\LiveListConcat.cs" />
+    <Compile Include="List\LiveValueListUnwrap.cs" />
+    <Compile Include="List\Projection\LiveListUntyped.cs" />
+    <Compile Include="List\Projection\LiveListReverse.cs" />
+    <Compile Include="List\Projection\LiveListIntegrate.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionarySort.cs" />
+    <Compile Include="Set\LiveSetObservable.cs" />
+    <Compile Include="Dictionary\LiveDictionaryFilter.cs" />
+    <Compile Include="Set\Projection\LiveSetUntyped.cs" />
+    <None Include="packages.config" />
+    <None Include="SortedList\LiveSortedListInner.cs" />
+    <None Include="SortedList\LiveSortedListObservable.cs" />
+    <None Include="SortedList\LiveSortedList.cs" />
+    <Compile Include="Value\LiveValueObservable.cs" />
+    <None Include="Value\LiveMutable.cs" />
+    <Compile Include="Value\LiveDecimal.cs" />
+    <Compile Include="Dictionary\Aggregation\LiveDictionaryGroupBy.cs" />
+    <Compile Include="Collection\Aggregation\LiveCollectionGroupBy.cs" />
+    <Compile Include="Collection\CollectionStateCache.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionIndependent.cs" />
+    <Compile Include="Dictionary\LiveDictionaryLiveContains.cs" />
+    <Compile Include="Dictionary\LiveDictionaryIndexer.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionaryValues.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionaryKeys.cs" />
+    <Compile Include="List\IndexNodeComparer.cs" />
+    <Compile Include="List\ListDecorator.cs" />
+    <Compile Include="List\Projection\LiveListIndependent.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionaryIndependent.cs" />
+    <None Include="Value\LiveMutableValue.cs" />
+    <None Include="Lock\AsyncNotifyLock.cs" />
+    <None Include="Lock\AsyncNotifyObject.cs" />
+    <None Include="Lock\AsyncNotifyList.cs" />
+    <Compile Include="Lock\LazyNotify.cs" />
+    <Compile Include="Lock\Lockable.cs" />
+    <Compile Include="Lock\NotifySet.cs" />
+    <None Include="Lock\ReadWriteLockable.cs" />
+    <Compile Include="Observable\ObservableToLiveValue.cs" />
+    <Compile Include="Set\Aggregation\LiveSetGroupBy.cs" />
+    <Compile Include="Set\LiveSetValueUnwrap.cs" />
+    <Compile Include="Subscription.cs" />
+    <Compile Include="Set\Projection\LiveSetSelect.cs" />
+    <Compile Include="KeyValuePair\KeyValuePairComparer.cs" />
+    <Compile Include="Collection\Aggregation\LiveCollectionKeyValuePairAggregate.cs" />
+    <Compile Include="Dictionary\LiveDictionaryAs.cs" />
+    <Compile Include="KeyValuePair\LiveKeyValuePairs.cs" />
+    <Compile Include="Collection\LiveCollectionEquals.cs" />
+    <Compile Include="Collection\LiveCollectionOrderBy.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionToList.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionAsSet.cs" />
+    <Compile Include="Entity\DatabaseActions.cs" />
+    <Compile Include="HashComparer.cs" />
+    <Compile Include="List\LiveListEquals.cs" />
+    <Compile Include="MultiMap\MultiMap.cs" />
+    <Compile Include="Observable\Changes.cs" />
+    <Compile Include="Set\LiveSetIsEqual.cs" />
+    <Compile Include="Set\LiveSetToList.cs" />
+    <Compile Include="Set\LiveSetContains.cs" />
+    <Compile Include="State.cs" />
+    <Compile Include="Collection\LiveCollectionInner.cs" />
+    <Compile Include="Entity\DatabaseAction.cs" />
+    <Compile Include="Entity\DatabaseConnection.cs" />
+    <Compile Include="Entity\SqlBulkCopyReader.cs" />
+    <Compile Include="Entity\LinqBulkCopy.cs" />
+    <Compile Include="Entity\LivePropertiesSubscription.cs" />
+    <Compile Include="Entity\LiveTable.cs" />
+    <Compile Include="Entity\LiveEntity.cs" />
+    <Compile Include="Entity\LiveDataContext.cs" />
+    <Compile Include="Entity\LiveEntityRef.cs" />
+    <Compile Include="Entity\LiveEntitySet.cs" />
+    <Compile Include="List\Aggregation\LiveListCorrelation.cs" />
+    <Compile Include="List\IListIndexDelta.cs" />
+    <Compile Include="List\Projection\LiveListZip.cs" />
+    <Compile Include="LiveMultiObserver.cs" />
+    <Compile Include="Observable\States.cs" />
+    <Compile Include="LiveObservable.cs" />
+    <Compile Include="Lock\NotifyObject.cs" />
+    <Compile Include="Lock\NotifyDictionary.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionDistinct.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionJoin.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionCrossJoin.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionaryWhere.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionaryUnwrap.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionaryToDictionary.cs" />
+    <Compile Include="Dictionary\Projection\LiveDictionaryJoin.cs" />
+    <Compile Include="List\Aggregation\LiveListSimpleAggregate.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionToDictionary.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionSelectMany.cs" />
+    <Compile Include="Collection\Aggregation\LiveCollectionAggregate.cs" />
+    <Compile Include="Collection\LiveCollectionSort.cs" />
+    <Compile Include="Dictionary\LiveDictionary.cs" />
+    <Compile Include="Dictionary\LiveDictionaryInner.cs" />
+    <Compile Include="List\Aggregation\LiveListAggregate.cs" />
+    <Compile Include="Collection\LiveCollectionView.cs" />
+    <Compile Include="Collection\Collection.cs" />
+    <Compile Include="Collection\CollectionDecorator.cs" />
+    <Compile Include="List\LiveListInner.cs" />
+    <Compile Include="Collection\LiveCollection.cs" />
+    <Compile Include="Collection\LiveCollectionPublisher.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionUnwrap.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionSimple.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionWhere.cs" />
+    <Compile Include="Collection\Projection\LiveCollectionSelect.cs" />
+    <Compile Include="Lock\NotifyList.cs" />
+    <Compile Include="Set\Projection\LiveSetSimple.cs" />
+    <Compile Include="Set\LiveSetWhere.cs" />
+    <Compile Include="Dictionary\LiveDictionaryView.cs" />
+    <Compile Include="Dictionary\DictionaryDelta.cs" />
+    <Compile Include="Collection\CollectionState.cs" />
+    <Compile Include="List\LiveList.cs" />
+    <Compile Include="List\Projection\LiveListTake.cs" />
+    <Compile Include="List\Projection\LiveListSkip.cs" />
+    <Compile Include="List\Projection\LiveListWhere.cs" />
+    <Compile Include="List\Projection\LiveListSimple.cs" />
+    <Compile Include="Set\SetDecorator.cs" />
+    <Compile Include="Set\SetDelta.cs" />
+    <Compile Include="Set\LiveSetView.cs" />
+    <Compile Include="Set\LiveSetInner.cs" />
+    <Compile Include="Extensions.cs" />
+    <Compile Include="Timeline\Publish.cs" />
+    <Compile Include="Timeline\DispatcherConsumer.cs" />
+    <Compile Include="Lock\NotifyLock.cs" />
+    <Compile Include="TraceFile.cs" />
+    <None Include="Value\LiveWindow.cs" />
+    <Compile Include="LiveMaxMicroseconds.cs" />
+    <Compile Include="Value\LiveArithmetic.cs">
+      <DependentUpon>LiveArithmetic.tt</DependentUpon>
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <Compile Include="Tuple\LiveStaticTuple.cs" />
+    <Compile Include="Collection\LiveValueCollectionUnwrap.cs" />
+    <Compile Include="Value\LiveValueNonStop.cs" />
+    <Compile Include="Value\LiveValueNull.cs" />
+    <Compile Include="Value\LiveCounter.cs" />
+    <Compile Include="Func\LiveFunc.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>LiveFunc.tt</DependentUpon>
+    </Compile>
+    <Compile Include="KeyValuePair\LiveKeyValuePair.cs" />
+    <Compile Include="Value\LiveString.cs" />
+    <Compile Include="Value\LiveValue.cs" />
+    <Compile Include="Value\LiveRateOfChange.cs" />
+    <Compile Include="Value\Projection\LiveValueThrottle.cs" />
+    <Compile Include="Value\Projection\LiveValueDistinctUntilChanged.cs" />
+    <Compile Include="Value\Projection\LiveValueUntyped.cs" />
+    <Compile Include="Tuple\LiveTuple.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>LiveTuple.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Value\Projection\LiveValueSelect.cs" />
+    <Compile Include="Value\Expressions\ExpressionUtil.cs" />
+    <Compile Include="Value\Expressions\LiveOperators.cs" />
+    <Compile Include="Value\LiveDateTime.cs" />
+    <Compile Include="Value\ValueSubscription.cs" />
+    <Compile Include="Value\LiveValuePublisher.cs" />
+    <Compile Include="Value\LiveValueUnwrap.cs" />
+    <Compile Include="Value\Expressions\LiveMath.cs" />
+    <Compile Include="Value\Live.cs" />
+    <Compile Include="Collection\CollectionDelta.cs" />
+    <Compile Include="List\Projection\LiveListUnwrap.cs" />
+    <Compile Include="List\Projection\LiveListSelect.cs" />
+    <Compile Include="List\ListDelta.cs" />
+    <Compile Include="Set\LiveSet.cs" />
+    <Compile Include="Value\ValueState.cs" />
+    <Compile Include="VirtualList\Node.cs" />
+    <Compile Include="VirtualList\VirtualList.cs" />
+    <Compile Include="Lock\Locks.cs" />
+    <Compile Include="Value\LiveNotifyPropertyChanged.cs" />
+    <Compile Include="Value\Expressions\ExpressionFunc.cs" />
+    <Compile Include="Object\LiveProperty.cs" />
+    <Compile Include="Value\LiveConst.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Timeline\Consumer.cs" />
+    <Compile Include="Binding\LiveValueBinding.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Binding\LiveListBinding.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <None Include="Entity\LiveDataContextTemplate.tt">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Entity\LiveEntityClassTemplate.tt">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Entity\LiveGenerator.tt">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Func\LiveFunc.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>LiveFunc.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Value\LiveArithmetic.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>LiveArithmetic.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Tuple\LiveTuple.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>LiveTuple.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="VirtualList\Performance.xls" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.VisualBasic.PowerPacks.10.0">
+      <Visible>False</Visible>
+      <ProductName>Microsoft Visual Basic PowerPacks 10.0</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
+      <Visible>False</Visible>
+      <ProductName>Windows Installer 3.1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="TimeSeries\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VertigoLib\VertigoLib.csproj">
+      <Project>{EEADB0BA-2A0B-4BF8-A719-0FDE812DAFF6}</Project>
+      <Name>VertigoLib</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

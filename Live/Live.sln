@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.23107.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Live", "Live.csproj", "{91477EB6-A2B6-4A79-A4DB-F4F7AEB8B0D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveTest", "LiveTest\LiveTest.csproj", "{31266B71-8B24-457C-A944-5DFC4FC77864}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveDemo", "LiveDemo\LiveDemo.csproj", "{EE11DD0F-65C2-4F4F-A9FC-A6269E2BA70C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VertigoLib", "..\VertigoLib\VertigoLib.csproj", "{EEADB0BA-2A0B-4BF8-A719-0FDE812DAFF6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{91477EB6-A2B6-4A79-A4DB-F4F7AEB8B0D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91477EB6-A2B6-4A79-A4DB-F4F7AEB8B0D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91477EB6-A2B6-4A79-A4DB-F4F7AEB8B0D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91477EB6-A2B6-4A79-A4DB-F4F7AEB8B0D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31266B71-8B24-457C-A944-5DFC4FC77864}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31266B71-8B24-457C-A944-5DFC4FC77864}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31266B71-8B24-457C-A944-5DFC4FC77864}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31266B71-8B24-457C-A944-5DFC4FC77864}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EE11DD0F-65C2-4F4F-A9FC-A6269E2BA70C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE11DD0F-65C2-4F4F-A9FC-A6269E2BA70C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE11DD0F-65C2-4F4F-A9FC-A6269E2BA70C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE11DD0F-65C2-4F4F-A9FC-A6269E2BA70C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EEADB0BA-2A0B-4BF8-A719-0FDE812DAFF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EEADB0BA-2A0B-4BF8-A719-0FDE812DAFF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EEADB0BA-2A0B-4BF8-A719-0FDE812DAFF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EEADB0BA-2A0B-4BF8-A719-0FDE812DAFF6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(SourceCodeControl) = preSolution
+		SccNumberOfProjects = 1
+		SccProjectUniqueName0 = ..\\VertigoLib\\VertigoLib.csproj
+		SccProjectName0 = SurroundSCMScci
+		SccLocalPath0 = ..
+		SccProvider0 = MSSCCI:Surround\u0020SCM
+		SccProjectFilePathRelativizedFromConnection0 = VertigoLib\\
+	EndGlobalSection
+	GlobalSection(TestCaseManagementSettings) = postSolution
+		CategoryFile = Live.vsmdi
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,337 @@
+<#@ Import Namespace="System.Linq" #>
+<#+
+/// <summary>
+/// Generates the generated Data Context subclass based on the LINQ to SQL DBML
+/// </summary>
+/// <remarks>
+/// <para>
+/// While MSLinqToSQLGenerator produces DataContext code that always uses an empty,
+/// explicitly created AttributeMappingSource in constructors that don’t receive
+/// mappingSource as a parameter, this generator simply calls the matching base
+/// constructor.
+/// </para>
+/// <para>
+/// While MSLinqToSQLGenerator uses fully-qualified, global:: type names, this template
+/// produces code with “using” directives and abbreviated names.
+/// </para>
+/// </remarks>
+public class LiveDataContextTemplate : CSharpTemplate
+{
+    /// <summary>
+    /// Deserialized LINQ to SQL model (.dbml) for which entity objects will be generated
+    /// </summary>
+    /// <remarks>
+    /// This property is automatically assigned by <see cref="LinqToSqlGenerator"/>. You
+    /// must assign this property manually if you are using this template separately.
+    /// </remarks>
+    public Database Database { get; set; }
+
+	/// <summary>
+	/// Directs output of the template to a separate file by default. User can override 
+	/// default behavior by assigning <see cref="Rendering"/> event handler.
+	/// </summary>
+	protected override void OnRendering(System.EventArgs e)
+	{
+		this.Output.File = this.Database.Class + ".generated.cs";
+		base.OnRendering(e);
+	}
+
+    /// <summary>
+    /// Generates a strongly-typed LINQ to SQL Data Context subclass
+    /// </summary>
+    public override string TransformText()
+    {
+        base.TransformText();
+#>
+namespace <#= this.Database.ContextNamespace #>
+{
+    using System.Linq;
+    using System.Data;
+    using System.Data.Linq;
+    using System.Data.Linq.Mapping;
+	using System.Data.SqlClient;
+	using Vertigo.Live;
+
+<#+
+        this.PushIndent("    ");
+        this.RenderUsingDirectives();
+        this.WriteLine(string.Empty);
+        this.RenderDatabaseAttribute();
+        this.PopIndent();
+#>
+    <#= AccessModifier(this.Database) #> <#= InheritanceModifier(this.Database) #>partial class <#= this.Database.Class #> : Vertigo.Live.LiveDataContext
+    {
+<#+
+        this.PushIndent("        ");
+#>
+#region Constructors
+<#+
+        this.RenderDefaultConstructor();
+#>
+
+public <#= this.Database.Class #>(string connectionString) : base(connectionString)
+{
+<#+
+        this.PushIndent("    ");
+        Array.ForEach(this.Database.Table, this.RenderConstructTable);
+        this.PopIndent();
+#>
+}
+<#+
+        this.PopIndent();
+#>
+
+        #endregion
+
+        #region Table properties
+<#+
+        this.PushIndent("        ");
+        Array.ForEach(this.Database.Table, this.RenderTable);
+        this.PopIndent();
+#>
+
+        #endregion
+
+<#+
+		RenderJoinTables();
+#>
+    }
+}
+<#+
+        return this.GenerationEnvironment.ToString();
+    }
+
+    /// <summary>
+    /// Verifies code generation parameters
+    /// </summary>
+    protected override void Validate()
+    {
+        if (this.Database == null)
+        {
+            throw new TransformationException("Database property must be assigned");
+        }
+
+        Validate(this.Database);
+    }
+
+    /// <summary>
+    /// Verifies properties the specified <paramref name="connection"/> used for code generation
+    /// </summary>
+    private static void Validate(Connection connection)
+    {
+        if (connection.Mode == ConnectionMode.ConnectionString)
+        {
+            if (string.IsNullOrEmpty(connection.ConnectionString))
+            {
+                throw new TransformationException("ConnectionString property of the Connection object is not specified");
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(connection.SettingsPropertyName))
+            {
+                throw new TransformationException("SettingsPropertyName property of the Connection object is not specified");
+            }
+
+            if (connection.Mode == ConnectionMode.AppSettings)
+            {
+                if (string.IsNullOrEmpty(connection.SettingsObjectName))
+                {
+                    throw new TransformationException("SettingsObjectName property of the Connection object is not specified");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies properties the specified <paramref name="database"/> used for code generation
+    /// </summary>
+    private static void Validate(Database database)
+    {
+        if (string.IsNullOrEmpty(database.Class))
+        {
+            throw new TransformationException("DataContext Name is not specified in the .dbml");
+        }
+
+        if (database.Connection != null)
+        {
+            Validate(database.Connection);
+        }
+
+        if (string.IsNullOrEmpty(database.ContextNamespace))
+        {
+            throw new TransformationException("ContextNamespace property of the Database object must be assigned");
+        }
+
+        // If there are no tables defined in the model, initialize the array to avoid checking it for null every time
+        database.Table = database.Table ?? new Table[0];
+        Array.ForEach(database.Table, Validate);
+    }
+
+    /// <summary>
+    /// Verifies properties the specified <paramref name="table"/> used for code generation
+    /// </summary>
+    private static void Validate(Table table)
+    {
+        if (string.IsNullOrEmpty(table.Member))
+        {
+            throw new TransformationException("Member property of a Table object is not specified in the model");
+        }
+
+        if (table.Type == null)
+        {
+            throw new TransformationException("Type property of a Table object is not specified in the model");
+        }
+
+        if (string.IsNullOrEmpty(table.Type.Name))
+        {
+            throw new TransformationException("Name property of a Type object is not specified in the model");
+        }
+    }
+
+    /// <summary>
+    /// Returns access modifier (public, internal) for the specified <paramref name="database"/>
+    /// </summary>
+    private static string AccessModifier(Database database)
+    {
+        return database.AccessModifier.ToString().ToLower();
+    }
+
+    /// <summary>
+    /// Returns inheritance modifier (sealed, abstract or none) for the specified <paramref name="database"/>
+    /// </summary>
+    private static string InheritanceModifier(Database database)
+    {
+        if (database.ModifierSpecified)
+        {
+            return database.Modifier.ToString().ToLower() + " ";
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Renders JoinTables to connect entities via LiveEntitySet/LiveEntityRef
+    /// </summary>
+    private void RenderJoinTables()
+    {
+		this.PushIndent("        ");
+#>
+public override void JoinTables()
+{
+<#+
+		this.PushIndent("    ");
+		foreach (var childTable in this.Database.Table)
+		{
+			foreach (var childAssociation in childTable.Type.Items.OfType<Association>().Where(a => a.IsForeignKey))
+			{
+				var parentTable = this.Database.Table.Single(t => t.Type.Items.OfType<Association>().Any(a => a.Name == childAssociation.Name && !a.IsForeignKey));
+				var parentAssociation = parentTable.Type.Items.OfType<Association>().Single(a => a.Name == childAssociation.Name && !a.IsForeignKey);
+#>
+<#= FieldName(childTable.Member) #>.Inner.Join(<#= parentTable.Member #>.Inner,
+	child => new { <#= string.Join(",", childAssociation.ThisKey.Split(',').Zip(parentAssociation.ThisKey.Split(','), (childName, parentName) => string.Format("{0} = child.{1}.Value{2}", parentName, childName, childTable.Type.Items.OfType<Column>().Single(c => c.Name == childName).CanBeNull ? ".Value" : "")).ToArray()) #> },
+	parent => new { <#= string.Join(",", parentAssociation.ThisKey.Split(',').Select(n => string.Format("{0} = parent.{0}.Value", n)).ToArray()) #> },
+	(child,parent) => child.<#= childAssociation.Member #>.Value = parent);
+<#+
+			}
+		}
+		this.PopIndent();
+#>
+}
+<#+
+		this.PopIndent();
+    }
+
+    /// <summary>
+    /// Renders [Database(...)] attribute if mapping is specified in the model
+    /// </summary>
+    private void RenderDatabaseAttribute()
+    {
+        if (!string.IsNullOrEmpty(this.Database.Name))
+        {
+#>
+[Database(Name = "<#= this.Database.Name #>")]
+<#+
+        }
+    }
+
+    /// <summary>
+    /// Renders default constructor for the DataContext class if the database connection
+    /// information is specified in the model
+    /// </summary>
+    private void RenderDefaultConstructor()
+    {
+        if (this.Database.Connection != null)
+        {
+            Connection connection = this.Database.Connection;
+#>
+
+public <#= this.Database.Class #>()
+<#+
+            switch (connection.Mode)
+            {
+                case ConnectionMode.ConnectionString:
+#>
+    : this("<#= connection.ConnectionString #>")
+<#+
+                    break;
+                case ConnectionMode.WebSettings:
+#>
+    : this(ConfigurationManager.ConnectionStrings["<#= connection.SettingsPropertyName #>"].ConnectionString)
+<#+
+                    break;
+                case ConnectionMode.AppSettings:
+#>
+    : this(<#= connection.SettingsObjectName #>.Default.<#= connection.SettingsPropertyName #>)
+<#+
+                    break;
+                default: throw new TransformationException("Unexpected Connection.Mode");
+            }
+#>
+{
+}
+<#+
+        }
+    }
+
+    /// <summary>
+    /// Renders property for the specified <paramref name="table"/>
+    /// </summary>
+    private void RenderTable(Table table)
+    {
+#>
+
+private LiveTable<<#= table.Type.Name #>> <#= FieldName(table.Member) #>;
+public LiveTable<<#= table.Type.Name #>> <#= table.Member #>
+{ get { return <#= FieldName(table.Member) #>; } }
+<#+
+    }
+
+    /// <summary>
+    /// Renders constructor for <paramref name="table"/>
+    /// </summary>
+    private void RenderConstructTable(Table table)
+    {
+#>
+<#= FieldName(table.Member) #> = new LiveTable<<#= table.Type.Name #>>(this);
+<#+
+    }
+
+    /// <summary>
+    /// Renders conditional using directives
+    /// </summary>
+    private void RenderUsingDirectives()
+    {
+        if (this.Database.Connection != null && this.Database.Connection.Mode == ConnectionMode.WebSettings)
+        {
+            this.WriteLine("using System.Configuration;");
+			this.Output.References.Add("System.Configuration");
+        }
+
+		if (this.Database.ContextNamespace != this.Database.EntityNamespace)
+		{
+			this.WriteLine("using {0};", this.Database.EntityNamespace);
+		}	
+    }
+}
+#>

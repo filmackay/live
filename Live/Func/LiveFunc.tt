@@ -1,0 +1,88 @@
+﻿<#@ template language="C#" debug="true" #>
+<#@ output extension=".cs" #>
+<#@ Assembly Name="System.Core.dll" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Linq" #>
+using System;
+
+namespace Vertigo.Live
+{
+<#
+    for (var typeCount = 2; typeCount <= 16; typeCount++)
+    {
+#>
+    public delegate ILiveValue<TResult> LiveFunc<<#=ExpandTypes(typeCount, "in T{0}, ", "")#>out TResult>(<#=ExpandTypes(typeCount, "ILiveValue<T{0}> t{0}", ", ")#>);
+
+    public static partial class LiveFunc
+    {
+	    public static ILiveValue<TResult> LiveInvoke<<#=ExpandTypes(typeCount, "T{0}", ",")#>, TResult>(this Func<<#=ExpandTypes(typeCount, "IValueState<T{0}>", ", ")#>, TResult> func, <#=ExpandTypes(typeCount, "ILiveValue<T{0}> source{0}", ", ")#>)
+		{
+<#=ExpandTypes(typeCount, "\t\t\tLiveObserver<IValueState<T{0}>> observer{0} = null;", "\r\n")#>
+
+            return LiveValueObservable<TResult>.Create(
+                innerChanged =>
+                {
+<#=ExpandTypes(typeCount, "\t\t\t\t\tsource{0}.Subscribe(observer{0} = source{0}.CreateObserver(innerChanged));", "\r\n")#>
+                },
+				() =>
+				{
+<#=ExpandTypes(typeCount, "\t\t\t\t\tobserver{0}.GetNotify();", "\r\n")#>
+				},
+                (innerChanged, oldState) =>
+				{
+					// update observers
+<#=ExpandTypes(typeCount, "\t\t\t\t\tvar state{0} = observer{0}.GetState();", "\r\n")#>
+
+					// work out expression result
+					var newState = new ValueState<TResult>
+						{
+							Status = <#=ExpandTypes(typeCount, "state{0}.Status", ".And(", ")")#>,
+							LastUpdated = <#=ExpandTypes(typeCount - 1, "Math.Max(state{0}.LastUpdated, ", "")#>state<#=typeCount-1#>.LastUpdated<#=ExpandTypes(typeCount - 1, ")", "")#>,
+						};
+					newState.NewValue = newState.Status.IsConnected()
+						? func(<#=ExpandTypes(typeCount, "state{0}", ", ")#>)
+						: default(TResult);
+					return newState;
+				},
+				() =>
+				{
+<#=ExpandTypes(typeCount, "\t\t\t\t\tobserver{0}.Dispose();", "\r\n")#>
+				});
+		}
+
+		public static ILiveValue<TResult> LiveInvoke<<#=ExpandTypes(typeCount, "T{0}", ",")#>, TResult>(this Func<<#=ExpandTypes(typeCount, "T{0}", ", ")#>, TResult> func, <#=ExpandTypes(typeCount, "ILiveValue<T{0}> source{0}", ", ")#>)
+        {
+            return
+                new Func<<#=ExpandTypes(typeCount, "IValueState<T{0}>", ", ")#>, TResult>((<#=ExpandTypes(typeCount, "state{0}", ", ")#>) => func(<#=ExpandTypes(typeCount, "state{0}.NewValue", ", ")#>))
+                    .LiveInvoke(<#=ExpandTypes(typeCount, "source{0}", ",")#>);
+        }
+
+        public static LiveFunc<<#=ExpandTypes(typeCount, "T{0}", ", ")#>, TResult> Create<<#=ExpandTypes(typeCount, "T{0}", ",")#>, TResult>(this Func<<#=ExpandTypes(typeCount, "T{0}", ", ")#>, TResult> func)
+        {
+            return (<#=ExpandTypes(typeCount, "t{0}", ", ")#>) => func.LiveInvoke(<#=ExpandTypes(typeCount, "t{0}", ", ")#>);
+        }
+
+		public static ILiveValue<TResult> Join<<#=ExpandTypes(typeCount, "T{0}", ",")#>, TResult>(this <#=ExpandTypes(typeCount, "ILiveValue<T{0}> source{0}", ", ")#>, Func<<#=ExpandTypes(typeCount, "T{0}", ", ")#>, TResult> selector)
+        {
+            return selector.Create()(<#=ExpandTypes(typeCount, "source{0}", ", ")#>);
+        }
+    }
+    
+<#  }   #>
+}
+
+<#+
+    public string ExpandTypes(int typeCount, string format, string pre, string post = "")
+    {
+        return string.Join(pre,
+            Enumerable.Range(0, typeCount)
+                      .Select(i => string.Format(format, i)).ToArray()) +
+			string.Join(post, Enumerable.Range(1, typeCount).Select(i => "").ToArray());
+    }
+	
+    public void ExpandTypes(int typeCount, Action<int> action)
+    {
+		for (var i = 0; i < typeCount; i++)
+			action(i);
+    }
+#>

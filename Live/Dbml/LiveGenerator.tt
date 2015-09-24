@@ -1,0 +1,643 @@
+﻿<#@ xsd processor="T4Toolbox.XsdProcessor" file="%VS100COMNTOOLS%\..\..\Xml\Schemas\DbmlSchema.xsd" #>
+<#@ include file="T4Toolbox.tt" #>
+<#@ include file="T4Toolbox\LinqToSql.tt" #>
+<#@ include file="LiveEntityClassTemplate.tt" #>
+<#@ include file="LiveDataContextTemplate.tt" #>
+<#+
+/// <summary>
+/// Generates DataContext and Entity classes from a LINQ to SQL DBML file
+/// </summary>
+public class LiveGenerator : Generator
+{
+	/// <summary>
+	/// LINQ to SQL database object for which entities will be generated
+	/// </summary>
+	private Database database = null;
+
+    /// <summary>
+    /// Maps .NET types to their SQL counterparts
+    /// </summary>
+    private static System.Collections.Generic.Dictionary<string, string> dataTypes;
+
+    /// <summary>
+    /// Initializes a dictionary
+    /// </summary>
+    static LiveGenerator()
+    {
+        dataTypes = CreateDataTypeMappings();
+    }
+
+    /// <summary>
+    /// Gets or sets path to the project where database tables and stored
+    /// procedures will be generated.
+    /// </summary>
+    /// <remarks>
+    /// Target project can be a C# or a Database project.
+    /// </remarks>
+    public string DatabaseProject = null;
+
+	/// <summary>
+	/// Gets or sets name of the LINQ to SQL .dbml file
+	/// </summary>
+	public string DbmlFile = null;
+	
+	/// <summary>
+	/// Gets or sets the value that indicates whether stored procedures will be generated
+	/// </summary>
+	public bool GenerateStoredProcedures = false;
+
+    /// <summary>
+	/// Gets or sets the template that will be used to generate DataContext class
+	/// </summary>
+	public LiveDataContextTemplate DataContextTemplate = new LiveDataContextTemplate();
+
+    /// <summary>
+    /// Gets or sets the template that will be used to generate delete procedure SQL scripts
+    /// </summary>
+    public LinqToSqlDeleteProcedureTemplate DeleteProcedureTemplate = new LinqToSqlDeleteProcedureTemplate();
+
+	/// <summary>
+	/// Gets or sets the template that will be used to generate Entity classes
+	/// </summary>
+	public LiveEntityClassTemplate EntityClassTemplate = new LiveEntityClassTemplate();
+
+    /// <summary>
+    /// Gets or sets the template that will be used to generate foreign key SQL scripts
+    /// </summary>
+    public LinqToSqlForeignKeyTemplate ForeignKeyTemplate = new LinqToSqlForeignKeyTemplate();
+
+    /// <summary>
+    /// Gets or sets the template that will be used to generate insert procedure SQL scripts
+    /// </summary>
+    public LinqToSqlInsertProcedureTemplate InsertProcedureTemplate = new LinqToSqlInsertProcedureTemplate();
+
+    /// <summary>
+    /// Gets or sets the template that will be used to generate primary key SQL scripts
+    /// </summary>
+    public LinqToSqlPrimaryKeyTemplate PrimaryKeyTemplate = new LinqToSqlPrimaryKeyTemplate();
+
+    /// <summary>
+    /// Gets or sets the template that will be used to generate create table SQL scripts
+    /// </summary>
+    public LinqToSqlTableTemplate TableTemplate = new LinqToSqlTableTemplate();
+
+    /// <summary>
+    /// Gets or sets the template that will be used to generate update procedure SQL scripts
+    /// </summary>
+    public LinqToSqlUpdateProcedureTemplate UpdateProcedureTemplate = new LinqToSqlUpdateProcedureTemplate();
+
+    #region protected
+
+	/// <summary>
+	/// Generates output files
+	/// </summary>
+	protected override void RunCore()
+	{
+		this.DataContextTemplate.Database = this.database;
+		this.DataContextTemplate.Render();
+
+        // Initialize templates
+		this.EntityClassTemplate.Database = this.database;
+		this.ForeignKeyTemplate.Database = this.database;
+
+        // Enable generation of database schema objects if database project is specified
+        bool generateSchema = this.DatabaseProject != null;
+        this.TableTemplate.Enabled           = generateSchema;
+        this.PrimaryKeyTemplate.Enabled      = generateSchema;
+        this.ForeignKeyTemplate.Enabled      = generateSchema;
+        this.DeleteProcedureTemplate.Enabled = generateSchema && this.GenerateStoredProcedures;
+        this.InsertProcedureTemplate.Enabled = generateSchema && this.GenerateStoredProcedures;
+        this.UpdateProcedureTemplate.Enabled = generateSchema && this.GenerateStoredProcedures;
+
+        // Update target project of the database schema templates
+        this.TableTemplate.Output.Project           = this.DatabaseProject;
+        this.PrimaryKeyTemplate.Output.Project      = this.DatabaseProject;
+        this.ForeignKeyTemplate.Output.Project      = this.DatabaseProject;
+        this.DeleteProcedureTemplate.Output.Project = this.DatabaseProject;
+        this.InsertProcedureTemplate.Output.Project = this.DatabaseProject;
+        this.UpdateProcedureTemplate.Output.Project = this.DatabaseProject;
+
+		foreach (Table table in this.database.Table)
+		{
+			this.ExecuteForEachType(table, table.Type, this.RenderEntityClass);
+
+            this.TableTemplate.Table = table;
+            this.TableTemplate.Render();
+
+            this.PrimaryKeyTemplate.Table = table;
+            this.PrimaryKeyTemplate.Render();
+
+			this.ExecuteForEachType(table, table.Type, this.RenderForeignKey);
+
+            this.InsertProcedureTemplate.Table = table;
+            this.InsertProcedureTemplate.Render();
+
+            this.DeleteProcedureTemplate.Table = table;
+            this.DeleteProcedureTemplate.Render();
+
+            this.UpdateProcedureTemplate.Table = table;
+            this.UpdateProcedureTemplate.Render();
+		}
+	}
+
+	/// <summary>
+	/// Validates code generation parameters
+	/// </summary>
+	protected override void Validate()
+	{
+	    this.ValidateDatabaseProject();
+	    this.ValidateDbmlFile();
+        this.LoadModel();
+        this.ValidateTemplates();
+	}
+
+    #endregion protected
+
+    #region internal
+
+    /// <summary>
+    /// Returns <see cref="Column" /> from the <see cref="Type"/> or one of its <see cref="BaseTypes"/>
+    /// with a matching property name or null.
+    /// </summary>
+	internal static Column FindColumn(Type type, Type[] baseTypes, string columnName)
+	{
+        Column column = FindColumn(type, columnName);
+        if (column != null)
+        {
+            return column;
+        }
+
+        foreach (Type baseType in baseTypes)
+        {
+            column = FindColumn(baseType, columnName);
+            if (column != null)
+            {
+                return column;
+            }
+        }
+
+        return null;
+	}
+	
+    /// <summary>
+    /// Tries to find a <see cref="Type"/> with the specified <paramref name="typeName"/>
+    /// in the inheritance hierarchy that starts with the specified <paramref name="type"/>.
+    /// </summary>
+	internal static Type FindType(Type baseType, string typeName)
+	{
+		System.Collections.Generic.Stack<Type> baseTypes = new System.Collections.Generic.Stack<Type>();
+		return FindType(baseType, typeName, baseTypes);
+	}
+	
+    /// <summary>
+    /// Tries to find a <see cref="Type"/> with the specified <paramref name="typeName"/>
+    /// in the inheritance hierarchy that starts with the specified <paramref name="type"/>.
+    /// </summary>
+    internal static Type FindType(Type type, string typeName, System.Collections.Generic.Stack<Type> baseTypes)
+    {
+        if (type.Name == typeName)
+        {
+            return type;
+        }
+
+		// If type has children, i.e. derived types
+        if (type.Type1 != null)
+        {
+            foreach (Type childType in type.Type1)
+            {
+				baseTypes.Push(type);
+				
+                Type matchingType = FindType(childType, typeName, baseTypes);
+                if (matchingType != null)
+                {
+                    return matchingType;
+                }
+				
+				baseTypes.Pop();
+            }
+        }
+
+        return null;
+    }
+
+	/// <summary>
+    /// Returns names of columns in the specified association key.
+    /// </summary>
+    internal static string[] GetColumnNamesFromKey(string key)
+    {
+        if (key == null)
+            return new string[0];
+        else
+            return key.Split(new char[] { ',', ' ' }, System.StringSplitOptions.RemoveEmptyEntries);
+    }
+
+    /// <summary>
+    /// Returns an array of <see cref="Column"/> object that represent the specified association key.
+    /// </summary>
+    internal static Column[] GetColumnsFromKey(Type type, Type[] baseTypes, string key)
+    {
+        string[] columnNames = GetColumnNamesFromKey(key);
+        Column[] columns = new Column[columnNames.Length];
+        for (var i = 0; i < columnNames.Length; i++)
+        {
+            columns[i] = FindColumn(type, baseTypes, columnNames[i]);
+            if (columns[i] == null)
+            {
+                throw new TransformationException(
+                    string.Format("Association key is invalid. Field \"{0}\" doesn't exist", columnNames[i]));
+            }
+        }
+
+        return columns;
+    }	
+
+    /// <summary>
+    /// Populates missing database properties of the specified <paramref name="column"/> based on
+    /// properties specified in the model.
+    /// </summary>
+    internal static void MapColumn(Column column)
+    {
+        // If column doesn't specify "Source" 
+        if (string.IsNullOrEmpty(column.Name))
+        {
+            // Use column's "Name"
+            column.Name = TransactSqlTemplate.Identifier(column.Member);
+        }
+
+        // Version columns require special handling
+        if (column.IsVersion)
+        {
+            // Verify CLR type
+            if (column.Type != typeof(System.Byte[]).FullName &&
+                column.Type != typeof(System.Data.Linq.Binary).FullName)
+            {
+                throw new TransformationException(
+                    string.Format(
+                        "Column {0} has unexpected type: {1}. Time Stamp columns can be of type Byte[] or Binary.",
+                        column.Name, column.Type));
+            }
+
+            // Verify SQL type
+            if (string.IsNullOrEmpty(column.DbType))
+            {
+                column.DbType = "ROWVERSION";
+            }
+            else
+            {
+                string dbType = column.DbType.ToUpperInvariant();
+                if (!dbType.StartsWith("ROWVERSION") && !dbType.StartsWith("TIMESTAMP"))
+                {
+                    throw new TransformationException(
+                        string.Format(
+                            "Column {0} has unexpected server data type: {1}. Time Stamp columns can be of type ROWVERSION or TIMESTAMP.",
+                            column.Name, column.DbType));
+                }
+            }
+        }
+
+        // If column doesn't specify "Server Data Type"
+        if (string.IsNullOrEmpty(column.DbType))
+        {
+            // Use column's "Type" to determine it
+            if (!dataTypes.TryGetValue(column.Type, out column.DbType))
+            {
+                throw new TransformationException(
+                    string.Format("Cannot automatically determine server data type for type '{0}'. Please specify it in the model explicitly.", column.Type));
+            }
+
+            // If column's "Nullable" property is set to False
+            if (!column.CanBeNull)
+            {
+                column.DbType += " NOT NULL";
+            }
+
+            // If column's "Auto Generated Value" property is set to True
+            if (column.IsDbGenerated)
+            {
+                if (column.Type == typeof(System.Guid).FullName)
+                {
+                    column.DbType += " DEFAULT NEWID()";
+                }
+                else
+                {
+                    column.DbType += " IDENTITY";
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Populates missing properties in all tables of the specified <paramref name="database"/> 
+    /// based on properties specified in the model.
+    /// </summary>
+    internal static void MapDatabase(Database database)
+    {
+        if (database.Table == null)
+        {
+            return;
+        }
+
+        foreach(Table table in database.Table)
+        {
+            MapTable(table);
+        }
+    }
+
+    /// <summary>
+    /// Populates missing properties the specified <paramref name="table"/> based 
+    /// on properties specified in the model.
+    /// </summary>
+    internal static void MapTable(Table table)
+    {
+        // If table doesn't specify "Source"
+        if (string.IsNullOrEmpty(table.Name))
+        {
+            // Use the name of its first type
+            table.Name = TransactSqlTemplate.Identifier(table.Type.Name);
+        }
+
+        MapType(table.Type);
+    }
+
+    /// <summary>
+    /// Populates missing properties in all child types and columns of the specified 
+    /// <paramref name="type"/> based on properties specified in the model.
+    /// </summary>
+    internal static void MapType(Type type)
+    {
+        if (type.Items != null)
+        {
+			foreach (object item in type.Items)
+			{
+				Column column = item as Column;
+				if (column != null)
+				{
+					MapColumn(column);
+					continue;
+				}
+			}
+		}
+		
+		if (type.Type1 != null)
+		{
+			foreach (Type derivedType in type.Type1)
+			{
+				MapType(derivedType);				
+			}
+		}
+    }
+
+    #endregion internal
+
+    #region private
+
+    /// <summary>
+    /// Returns a dictionary of .NET/SQL types based on http://msdn.microsoft.com/en-us/library/bb386947.aspx
+    /// </summary>
+    private static System.Collections.Generic.Dictionary<string, string> CreateDataTypeMappings()
+    {
+        var dataTypes = new System.Collections.Generic.Dictionary<string, string>();
+
+        // Numeric mapping
+        dataTypes[typeof(System.Boolean).FullName] = "BIT";
+        dataTypes[typeof(System.Byte).FullName]    = "TINYINT";
+        dataTypes[typeof(System.Int16).FullName]   = "SMALLINT";
+        dataTypes[typeof(System.Int32).FullName]   = "INT";
+        dataTypes[typeof(System.Int64).FullName]   = "BIGINT";
+        dataTypes[typeof(System.SByte).FullName]   = "SMALLINT";
+        dataTypes[typeof(System.UInt16).FullName]  = "INT";
+        dataTypes[typeof(System.UInt32).FullName]  = "BIGINT";
+        dataTypes[typeof(System.UInt64).FullName]  = "DECIMAL(20)";
+        dataTypes[typeof(System.Decimal).FullName] = "DECIMAL(29,4)";
+        dataTypes[typeof(System.Single).FullName]  = "REAL";
+        dataTypes[typeof(System.Double).FullName]  = "FLOAT";
+
+        // Text mapping
+        dataTypes[typeof(System.Char).FullName]   = "NCHAR(1)";
+        dataTypes[typeof(System.String).FullName] = "NVARCHAR(4000)";
+        dataTypes[typeof(System.Char[]).FullName] = "NVARCHAR(4000)";
+
+        // XML mapping
+        dataTypes[typeof(System.Xml.Linq.XElement).FullName]  = "XML";
+        dataTypes[typeof(System.Xml.Linq.XDocument).FullName] = "XML";
+
+        // Date and Time mapping
+        dataTypes[typeof(System.DateTime).FullName]       = "DATETIME";
+        dataTypes[typeof(System.DateTimeOffset).FullName] = "DATETIMEOFFSET";
+        dataTypes[typeof(System.TimeSpan).FullName]       = "TIME";
+
+        // Binary mapping
+        dataTypes[typeof(System.Data.Linq.Binary).FullName]					   = "VARBINARY(MAX)";
+        dataTypes[typeof(System.Byte[]).FullName]          					   = "VARBINARY(MAX)";
+        dataTypes[typeof(System.Runtime.Serialization.ISerializable).FullName] = "VARBINARY(MAX)";
+
+        // Miscellaneous mapping
+        dataTypes[typeof(System.Guid).FullName]   = "UNIQUEIDENTIFIER";
+        dataTypes[typeof(System.Object).FullName] = "SQL_VARIANT";
+
+        // TODO: Map builtin C# types (i.e. int) in addition to CLR types (System.Int32)
+        // TODO: Map columns to ROWVERSION data type
+
+        return dataTypes;
+    }
+
+	/// <summary>
+	/// Encapsulates a code generation action that needs to be performed for each <see cref="Type"/>
+	/// defined in a LINQ to SQL model.
+	/// </summary>
+	/// <seealso cref="ExecuteForEachType"/>
+	private delegate void TypeSpecificAction(Table table, Type type, System.Collections.Generic.Stack<Type> baseTypes);
+	
+	/// <summary>
+	/// Executes the specified <paramref name="action"/> for the <paramref name="type"/> 
+	/// and all of its derived types.
+	/// </summary>
+	private void ExecuteForEachType(Table table, Type type, TypeSpecificAction action)
+	{
+		this.ExecuteForEachType(table, type, action, new System.Collections.Generic.Stack<Type>());
+	}
+	
+	/// <summary>
+	/// Executes the specified <paramref name="action"/> for the <paramref name="type"/> 
+	/// and all of its derived types.
+	/// </summary>
+	private void ExecuteForEachType(Table table, Type type, TypeSpecificAction action, System.Collections.Generic.Stack<Type> baseTypes)
+	{
+		action(table, type, baseTypes);
+		
+		// If current type has children, derived types
+		if (type.Type1 != null)
+		{
+		    baseTypes.Push(type);
+
+			// Execute the action for each derived type
+			foreach (Type childType in type.Type1)
+			{
+				this.ExecuteForEachType(table, childType, action, baseTypes);
+			}
+
+			baseTypes.Pop();
+		}		
+	}
+	
+    /// <summary>
+    /// Returns <see cref="Column" /> from the specified <paramref name="type"/>
+    /// with a matching property name or null.
+    /// </summary>
+    private static Column FindColumn(Type type, string columnName)
+    {
+        foreach (object item in type.Items)
+        {
+            Column column = item as Column;
+			// column.Member provides property name if it is different from column.Name
+            if (column != null && (column.Member == columnName || column.Name == columnName))
+            {
+                return column;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Loads <see cref="Database"/> model from the <see cref="DbmlFile"/>.
+    /// </summary>
+    private void LoadModel()
+    {
+		this.database = Database.Load(this.DbmlFile);
+
+		// If there are no tables defined in the model, initialize the array to avoid checking it for null every time
+		this.database.Table = this.database.Table ?? new Table[0];
+
+        MapDatabase(this.database);
+
+		// Generate code in default namespace, unless namespaces were specified in the model
+		this.database.ContextNamespace = this.database.ContextNamespace ?? TransformationContext.DefaultNamespace;
+		this.database.EntityNamespace = this.database.EntityNamespace ?? TransformationContext.DefaultNamespace;
+    }
+
+	/// <summary>
+	/// Generates C# entity class for the specified <paramref name="type"/>.
+	/// </summary>
+	private void RenderEntityClass(Table table, Type type, System.Collections.Generic.Stack<Type> baseTypes)
+	{
+		this.EntityClassTemplate.Table = table;
+		this.EntityClassTemplate.Type = type;
+		this.EntityClassTemplate.BaseTypes = baseTypes.ToArray();
+		this.EntityClassTemplate.Render();
+	}
+
+	/// <summary>
+	/// Generates Foreign Key scripts for the specified <paramref name="type"/>.
+	/// </summary>
+	private void RenderForeignKey(Table table, Type type, System.Collections.Generic.Stack<Type> baseTypes)
+	{
+        this.ForeignKeyTemplate.Table = table;
+		this.ForeignKeyTemplate.Type = type;
+		this.ForeignKeyTemplate.BaseTypes = baseTypes.ToArray();
+		foreach (object item in type.Items)
+		{
+			Association association = item as Association;
+			if (association != null && association.IsForeignKey)
+			{
+				this.ForeignKeyTemplate.Association = association;
+				this.ForeignKeyTemplate.Render();
+			}
+		}
+	}
+	
+    /// <summary>
+    /// Validates the <see cref="DatabaseProject"/> code generation parameter.
+    /// </summary>
+    private void ValidateDatabaseProject()
+    {
+        if (!string.IsNullOrEmpty(this.DatabaseProject))
+        {
+            if (!System.IO.Path.IsPathRooted(this.DatabaseProject))
+            {
+                this.DatabaseProject = System.IO.Path.Combine(
+                    System.IO.Path.GetDirectoryName(TransformationContext.Host.TemplateFile),
+                    this.DatabaseProject);
+                this.DatabaseProject = System.IO.Path.GetFullPath(this.DatabaseProject);
+            }
+
+            if (!System.IO.File.Exists(this.DatabaseProject))
+		    {
+			    throw new TransformationException(string.Format("DatabaseProject '{0}' doesn't exist", this.DatabaseProject));
+		    }
+        }
+    }
+
+    /// <summary>
+    /// Validates <see cref="DbmlFile"/> code generation parameter.
+    /// </summary>
+    private void ValidateDbmlFile()
+    {
+		if (this.DbmlFile == null)
+		{
+			throw new TransformationException("DbmlFile property must be assigned");
+		}
+
+        if (!System.IO.Path.IsPathRooted(this.DbmlFile))
+        {
+            this.DbmlFile = System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(TransformationContext.Host.TemplateFile),
+                this.DbmlFile);
+            this.DbmlFile = System.IO.Path.GetFullPath(this.DbmlFile);
+        }
+
+        if (!System.IO.File.Exists(this.DbmlFile))
+	    {
+		    throw new TransformationException(string.Format("DbmlFile '{0}' doesn't exist", this.DbmlFile));
+	    }
+    }
+
+    /// <summary>
+    /// Validates code generation templates.
+    /// </summary>
+    private void ValidateTemplates()
+    {
+		if (this.DataContextTemplate == null)
+		{
+			throw new TransformationException("GeneratedDataContextTemplate property must be assigned");
+		}
+
+        if (this.DeleteProcedureTemplate == null)
+        {
+            throw new TransformationException("DeleteProcedureTemplate property must be assigned");
+        }
+
+		if (this.EntityClassTemplate == null)
+		{
+			throw new TransformationException("GeneratedTemplate property must be assigned");
+		}
+
+        if (this.ForeignKeyTemplate == null)
+        {
+            throw new TransformationException("ForeignKeyTemplate property must be assigned");
+        }
+
+        if (this.InsertProcedureTemplate == null)
+        {
+            throw new TransformationException("InsertProcedureTemplate property must be assigned");
+        }
+
+        if (this.PrimaryKeyTemplate == null)
+        {
+            throw new TransformationException("PrimaryKeyTemplate property must be assingned");
+        }
+
+        if (this.TableTemplate == null)
+        {
+            throw new TransformationException("TableTemplate property must be assigned");
+        }
+
+        if (this.UpdateProcedureTemplate == null)
+        {
+            throw new TransformationException("UpdateProcedureTemplate property must be assigned");
+        }
+    }
+
+	#endregion private
+}
+#>

@@ -1,0 +1,134 @@
+﻿<#@ template language="C#" debug="true" #>
+<#@ output extension=".cs" #>
+<#@ Assembly Name="System.Core.dll" #>
+<#@ import namespace="System" #>
+<#@ import namespace="System.Linq" #>
+using System;
+using System.Linq;
+
+namespace Vertigo.Live
+{
+    public static partial class Extensions
+	{
+<#
+	Aggregation("Sum", false,
+		(type, returnType) =>
+			{ #>
+			return source.Aggregate(items => items.Sum(), (agg, state) => agg + state.Delta.Inserts.Sum() - state.Delta.Deletes.Sum());
+<# });
+    Aggregation("Min", false,
+		(type, returnType) =>
+		{ #>
+			return source.Aggregate(
+		        Enumerable.Min,
+		        (agg, state) =>
+		            {
+                        if (state.Delta.Inserts != null)
+                        {
+			                var minInsert = state.Delta.Inserts.Min();
+			                if (minInsert < agg<# if (type.EndsWith("?")) { #> || agg == null<# } #>)
+			                    return minInsert;
+						}
+                        if (state.Delta.Deletes != null)
+                        {
+			                if (state.Delta.Deletes.Min() == agg)
+			                    return state.Inner.Min();
+						}
+			            return agg;
+		            }
+				);
+	<# });
+    Aggregation("Max", false,
+		(type, returnType) =>
+		{ #>
+			return source.Aggregate(
+		        Enumerable.Max,
+		        (agg, state) =>
+		            {
+                        if (state.Delta.Inserts != null)
+                        {
+                            var maxInsert = state.Delta.Inserts.Max();
+                            if (maxInsert > agg<# if (type.EndsWith("?")) { #> || agg == null<# } #>)
+                                return maxInsert;
+                        }
+                        if (state.Delta.Deletes != null)
+                        {
+                            if (state.Delta.Deletes.Max() == agg)
+                                return state.Inner.Max();
+                        }
+			            return agg;
+		            }
+				);
+	<# });
+	Aggregation("Average", true,
+		(type, returnType) =>
+			{ #>
+			return source
+				.Sum()
+<#
+			if (type != returnType)
+			{
+#>				.Convert<<#=type#>,<#=returnType#>>()
+<#
+			}
+#>				.Divide(source.Count()
+<#
+			if (returnType != "int")
+			{
+#>					.Convert<int,<#=returnType#>>()
+<#
+			}
+#>				);
+<# });
+#>
+	}
+}
+
+<#+
+
+	public void Aggregation(string aggregationName, bool avoidIntReturn, Action<string, string> handleState)
+	{
+		var types = new[] { "int", "long", "decimal", "float", "double" };
+#>
+		#region <#=aggregationName#>() overloads
+
+<#+
+		foreach (var type in types.SelectMany(t => new[] { t, t + "?" }))
+		{
+			var returnType = type;
+			if (returnType == "int" && avoidIntReturn)
+				returnType = "double";
+#>
+		// <#=type#>
+		public static ILiveValue<<#=returnType#>> <#=aggregationName#><TIDelta>(this ILiveCollection<<#=type#>, TIDelta> source)
+            where TIDelta : ICollectionDelta<<#=type#>>
+        {
+<#+
+			handleState(type, returnType);
+#>
+        }
+
+		public static ILiveValue<<#=returnType#>> <#=aggregationName#><T, TIDelta>(this ILiveCollection<T, TIDelta> source, Func<T, ILiveValue<<#=type#>>> selector)
+            where TIDelta : ICollectionDelta<T>
+        {
+			return source
+				.Select(selector)
+				.<#=aggregationName#>();
+        }
+
+		public static ILiveValue<<#=returnType#>> <#=aggregationName#><T, TIDelta>(this ILiveCollection<T, TIDelta> source, Func<T, <#=type#>> selector)
+            where TIDelta : ICollectionDelta<T>
+        {
+			return source
+				.SelectStatic(selector)
+				.<#=aggregationName#>();
+        }
+
+<#+
+		}
+#>
+		#endregion
+
+<#+
+	}
+#>
